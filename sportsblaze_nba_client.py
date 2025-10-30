@@ -23,14 +23,23 @@ class SportsBlazeNBAClient:
         self.base_url = "https://api.sportsblaze.com/nba/v1"
         self.session = requests.Session()
 
-    def _make_request(self, endpoint: str, params: Optional[Dict] = None, auth_method: str = "query") -> Dict[str, Any]:
+        # Set browser-like headers to avoid API blocking
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Referer': 'https://docs.sportsblaze.com/',
+        })
+
+    def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Make a request to the SportsBlaze API.
 
         Args:
             endpoint: API endpoint path
             params: Additional query parameters
-            auth_method: Authentication method ('query', 'header', or 'both')
 
         Returns:
             JSON response as a dictionary
@@ -41,23 +50,13 @@ class SportsBlazeNBAClient:
         if params is None:
             params = {}
 
-        headers = {}
-
-        # Try different authentication methods
-        if auth_method in ["query", "both"]:
-            params['key'] = self.api_key
-            params['apikey'] = self.api_key
-            params['api_key'] = self.api_key
-
-        if auth_method in ["header", "both"]:
-            headers['X-API-Key'] = self.api_key
-            headers['Authorization'] = f'Bearer {self.api_key}'
-            headers['api-key'] = self.api_key
+        # Add API key to query parameters
+        params['key'] = self.api_key
 
         url = f"{self.base_url}/{endpoint}"
 
         try:
-            response = self.session.get(url, params=params, headers=headers, timeout=30)
+            response = self.session.get(url, params=params, timeout=30)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
@@ -82,22 +81,8 @@ class SportsBlazeNBAClient:
         if date is None:
             date = datetime.now().strftime("%Y-%m-%d")
 
-        # Try different possible endpoint patterns
-        endpoints_to_try = [
-            f"boxscores/daily/{date}.json",
-            f"games/daily/{date}.json",
-            f"schedule/daily/{date}.json",
-        ]
-
-        for endpoint in endpoints_to_try:
-            try:
-                return self._make_request(endpoint)
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 404:
-                    continue
-                raise
-
-        raise Exception(f"Could not find valid endpoint for daily boxscores")
+        endpoint = f"boxscores/daily/{date}.json"
+        return self._make_request(endpoint)
 
     def get_date_range_boxscores(self, start_date: str, end_date: str) -> List[Dict[str, Any]]:
         """
@@ -249,21 +234,24 @@ def main():
 
     # Example 2: Get boxscores for a specific date
     print("\n" + "="*60)
-    print("Fetching NBA boxscores for 2024-10-30...")
+    print("Fetching NBA boxscores for 2025-10-29...")
     try:
-        specific_date_data = client.get_daily_boxscores("2024-10-30")
-        client.print_daily_summary("2024-10-30")
+        specific_date_data = client.get_daily_boxscores("2025-10-29")
+        client.print_daily_summary("2025-10-29")
     except Exception as e:
         print(f"Error fetching data for specific date: {e}")
 
     # Example 3: Get boxscores for a date range
     print("\n" + "="*60)
-    print("Fetching NBA boxscores for date range...")
+    print("Fetching NBA boxscores for date range (2025-10-27 to 2025-10-29)...")
     try:
         # Uncomment to test with a date range
-        # range_data = client.get_date_range_boxscores("2024-10-28", "2024-10-30")
-        # print(f"\nFetched data for {len(range_data)} dates")
-        pass
+        range_data = client.get_date_range_boxscores("2025-10-27", "2025-10-29")
+        print(f"\nFetched data for {len(range_data)} dates")
+        for item in range_data:
+            print(f"\nDate: {item['date']}")
+            if 'data' in item and 'games' in item['data']:
+                print(f"  Games: {len(item['data']['games'])}")
     except Exception as e:
         print(f"Error fetching date range: {e}")
 
