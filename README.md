@@ -12,6 +12,27 @@ pip install -r requirements.txt
 
 The scraper provides several commands to fetch different types of NBA data:
 
+### Fetch Player Stats with Minimum Minutes Filter
+
+Get all players who have played at least a specified number of minutes in the current season:
+
+```bash
+# Fetch players with at least 15 minutes of game time in 2024-25 season
+python fetch_player_stats.py --season 2024-25 --min-minutes 15
+
+# Export as CSV
+python fetch_player_stats.py --season 2024-25 --min-minutes 15 --format csv
+
+# Custom minimum minutes threshold
+python fetch_player_stats.py --season 2024-25 --min-minutes 100
+```
+
+This will:
+- Pull all player statistics for the specified season
+- Filter to only players with at least the specified minutes played
+- Display a summary and top 10 players by minutes
+- Save results to the `data/` directory with a timestamp
+
 ### List All NBA Teams
 
 ```bash
